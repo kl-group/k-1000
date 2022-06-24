@@ -1,0 +1,36 @@
+ldap:
+  find:
+    defaultDN: DC=domain,DC=int
+    userDN: DC=domain,DC=int
+    groupDN: DC=domain,DC=int
+  auth:
+    user: k-1000
+    password: o8ff7wengfoius6I&^NF2UIYGNo(*^%djtfo387sdnfgk5usdygf
+  servers:
+    - ldap://192.168.37.5:389
+    - ldaps://192.168.20.5:636
+asterisk:
+  server: 192.168.33.2
+  auth:
+    qlUrl: http://192.168.33.2/admin/api/api/gql
+    authUrl: http://192.168.33.2/admin/api/api/authorize
+    tokenUrl: http://192.168.33.2/admin/api/api/token
+    secret: 9bb9791a58a47df1b460694524fb2328
+    clientid: 87ce30ab0a042746c35ad961001271f4b90e5c839eb1f89a85a866a07de02d1c
+  extension:
+    dn: OU=extension,OU=telephone,DC=domain,DC=int
+    ldapfiler: (&(objectClass=computer))
+    attribute: name
+    attribute-regexp: ^SIP-([0-9]{3})$
+    owner:
+      attribute: managedBy
+      type: CN
+      extensionNameAttributeUser: displayName
+      UserAttributePhone: telephoneNumber
+    purge: false
+  ringgroup:
+    dn: OU=ringgroup,OU=telephone,DC=domain,DC=int
+    ldapfiler: (&(objectClass=group))
+    attribute: name
+    attribute-regexp: ^SIP-GRP-[0-9]{4}$
+    purge: false
