@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"regexp"
 )
 
@@ -30,7 +29,7 @@ func (T *MapExtension) loadFromLdap() error {
 		return err
 	}
 	searchRequest.Filter = Config.GetString("asterisk.extension.ldapfiler")
-	searchRequest.Attributes = []string{Config.GetString("asterisk.extension.attribute"), Config.GetString("asterisk.extension.owner.attribute"), "description"}
+	searchRequest.Attributes = []string{Config.GetString("asterisk.extension.attribute"), Config.GetString("asterisk.extension.owner.attribute"), "description", Config.GetString("asterisk.extension.owner.passwdattr")}
 	req, err := ldapSearch(*searchRequest)
 	if err != nil {
 		logme.Fatal(err.Error())
@@ -54,6 +53,7 @@ func (T *MapExtension) loadFromLdap() error {
 			LdapDN:      v.DN,
 			Number:      s,
 			Description: v.GetAttributeValue("description"),
+			ExtPassword: v.GetAttributeValue(Config.GetString("asterisk.extension.owner.passwdattr")),
 		}
 		x.Name = helpersGetNameFromDN(x.Owner)
 		mapExtensionLdap[s] = x
@@ -81,6 +81,7 @@ func (T MapExtension) prepareLdap() {
 			continue
 		}
 	}
+
 }
 func (T MapExtension) prepareAsterisk() {
 	for _, v := range T.Map {
@@ -88,9 +89,16 @@ func (T MapExtension) prepareAsterisk() {
 			logme.Warning(err)
 			continue
 		}
-
 	}
 
+	for _, lv := range VarMapExtensionLdap.Map {
+		if _, ok := VarMapExtensionAsterisk.Map[lv.Number]; !ok {
+			if err := lv.createExtensionInAsterisk(); err != nil {
+				logme.Warning(err)
+				continue
+			}
+		}
+	}
 }
 
 func (T Extension) checkExtensionAsterisk() error {
@@ -104,7 +112,6 @@ func (T Extension) checkExtensionAsterisk() error {
 		needName = val.Description
 	}
 	if needName == "" {
-		log.Println(val)
 		logme.Warningf("Name Extension '%s' empty in ldap", T.Number)
 		return nil
 	}
@@ -115,6 +122,10 @@ func (T Extension) checkExtensionAsterisk() error {
 	return GraphQLUpdateNameExtension(T, needName)
 }
 
+func (T Extension) createExtensionInAsterisk() error {
+	return GraphQlAddExtension(T)
+
+}
 func (T Extension) updateOwnerLdap() error {
 	searchRequest, err := ldapPrepareSearchRequest()
 	if err != nil {

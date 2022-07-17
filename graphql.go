@@ -20,7 +20,7 @@ func GraphQLUpdateNameExtension(e Extension, name string) error {
 		return err
 	}
 
-	var vres struct {
+	var vRes struct {
 		UpdateExtension struct {
 			Status  graphql.Boolean `json:"status"`
 			Message graphql.String  `json:"message"`
@@ -40,14 +40,53 @@ func GraphQLUpdateNameExtension(e Extension, name string) error {
 	variables := map[string]interface{}{
 		"input": x,
 	}
-	err = client.Mutate(ctx, &vres, variables)
+	err = client.Mutate(ctx, &vRes, variables)
 	if err != nil {
 		return err
 	}
 	needReloadAsterisk = true
 	return nil
 }
+func GraphQlAddExtension(e Extension) error {
+	logme.Infof("Create Extension (%s) in Asterisk", e.Number)
+	id, err := strconv.Atoi(e.Number)
+	if err != nil {
+		logme.Warningf("string \"%s\" not convert to int", e.Number)
+		return err
+	}
 
+	client, err := GraphQLClient()
+	if err != nil {
+		return err
+	}
+	var vRes struct {
+		AddExtension struct {
+			Status  graphql.Boolean `json:"status"`
+			Message graphql.String  `json:"message"`
+		} `graphql:"addExtension(input: $input)" json:"addExtension"`
+	}
+	type addExtensionInput struct {
+		ExtensionId graphql.ID     `json:"extensionId" graphql:"extensionId"`
+		Name        graphql.String `json:"name" graphql:"name"`
+		Tech        graphql.String `json:"tech" graphql:"tech"`
+		Email       graphql.String `json:"email" graphql:"email"`
+	}
+	x := addExtensionInput{
+		ExtensionId: graphql.ID(id),
+		Tech:        graphql.String("pjsip"),
+		Name:        graphql.String(e.Name),
+		Email:       graphql.String(""),
+	}
+	variables := map[string]interface{}{
+		"input": x,
+	}
+	err = client.Mutate(ctx, &vRes, variables)
+	if err != nil {
+		return err
+	}
+	needReloadAsterisk = true
+	return nil
+}
 func GraphQLLoadAllExtension() ([]Extension, error) {
 	client, err := GraphQLClient()
 	if err != nil {
